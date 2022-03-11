@@ -19,7 +19,7 @@ void * proc(void *args) {
 			if (mem[index] != NULL) {
 				index++;
 			}
-		}else{
+		} else {
 			// Free memory
 			if (index == 0) {
 				continue;

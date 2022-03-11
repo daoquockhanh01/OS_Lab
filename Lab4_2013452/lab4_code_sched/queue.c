@@ -18,7 +18,7 @@ int empty(struct pqueue_t * q) {
  * Return NULL if the queue is empty */
 struct pcb_t * de_queue(struct pqueue_t * q) {
 	struct pcb_t * proc = NULL;
-	// TODO: return q->head->data and remember to update the queue's head
+	?// TODO: return q->head->data and remember to update the queue's head
 	// and tail if necessary. Remember to use 'lock' to avoid race
 	// condition
 	
