@@ -1,3 +1,5 @@
+///////////////////////////////////// DONE ////////////////////////////////////
+
 #include "mem.h"
 #include <stdlib.h>
 #include <pthread.h>
@@ -31,7 +33,7 @@ int mem_init(unsigned int size) {
 	/* Initial free list with only 1 region */
 	free_regions = (struct mem_region *)malloc(sizeof(struct mem_region));
 	free_regions->size = size;
-	free_regions->pointer = (char*)mem_pool;
+	free_regions->pointer = (char *)mem_pool;
 	free_regions->next = NULL;
 	free_regions->prev = NULL;
 
@@ -69,20 +71,20 @@ void mem_finish() {
 
 void * mem_alloc(unsigned int size) {
 	pthread_mutex_lock(&lock);
-	// Follow is FIST FIT allocator used for demonstration only.
+	// Follow is FIRST FIT allocator used for demonstration only.
 	// You need to implment your own BEST FIT allocator.
 	// TODO: Comment the next line
-	void * pointer = first_fit_allocator(size);
+	// void * pointer = first_fit_allocator(size);
 	// Commnent out the previous line and uncomment to next line
 	// to invoke best fit allocator
 	// TODO: uncomment the next line
-	//void * pointer = best_fit_allocator(size);
+	void * pointer = best_fit_allocator(size);
 	
 	// FOR VERIFICATION ONLY. DO NOT REMOVE THESE LINES
 	if (pointer != NULL) {
-		printf("Alloc [%4d bytes] %p-%p\n", size, pointer, (char*)pointer + size - 1);
-	}else{
-		printf("Alloc [%4d bytes] NULL\n");
+		printf("Alloc [%4d bytes] %p-%p\n", size, pointer, (char *)pointer + size - 1);
+	} else {
+		printf("Alloc [%4d bytes] NULL\n", size);
 	}
 
 	pthread_mutex_unlock(&lock);
@@ -103,7 +105,7 @@ void mem_free(void * pointer) {
 			if (used_regions != NULL) {
 				used_regions->prev = NULL;
 			}
-		}else{
+		} else {
 			if (current_region->prev != NULL) {
 				current_region->prev->next = current_region->next;
 			}
@@ -120,7 +122,7 @@ void mem_free(void * pointer) {
 		if (free_regions == NULL) {
 			// No free region
 			free_regions = current_region;
-		}else{
+		} else {
 			// Find a location of the list for it
 			if (current_region->pointer < free_regions->pointer) {
 				// new region will be put on the first location
@@ -129,14 +131,14 @@ void mem_free(void * pointer) {
 					free_regions->pointer = current_region->pointer;
 					free_regions->size += current_region->size;
 					free(current_region);
-				}else{
+				} else {
 					// These regions are not contiguous
 					free_regions->prev = current_region;
 					current_region->prev = NULL;
 					current_region->next = free_regions;
 					free_regions = current_region;
 				}
-			}else{
+			} else {
 				// new region will be put on somewhere in the middle or at the end of the list
 				struct mem_region * tmp = free_regions;
 				while (tmp->pointer < current_region->pointer && tmp->next != NULL) {
@@ -153,14 +155,14 @@ void mem_free(void * pointer) {
 						current_region->prev = tmp;
 						current_region->next = NULL;
 					}
-				}else{
+				} else {
 					// new region is in the middle of the list
 					if (tmp->prev->pointer + tmp->prev->size == current_region->pointer) {
 						// current_region and its previous one are contiguous
 						tmp->prev->size += current_region->size;
 						free(current_region);
 						current_region = tmp->prev;
-					}else{
+					} else {
 						current_region->prev = tmp->prev;
 						current_region->next = tmp;
 						tmp->prev->next = current_region;
@@ -184,7 +186,55 @@ void mem_free(void * pointer) {
 
 void * best_fit_allocator(unsigned int size) {
 	// TODO: Implement your best fit allocator here
-	return NULL; // remember to remove this line 
+	int found = 0;
+	struct mem_region * current_region = free_regions;
+	struct mem_region * tmp = NULL;
+	while (current_region != NULL) {
+		if (!found) {
+			if (size <= current_region->size) {
+				found = 1;
+				tmp = current_region;
+			}
+		} else {
+			if (size <= current_region->size) 
+				if (current_region->size < tmp->size) 
+					tmp = current_region;
+		}
+		current_region = current_region->next;
+	}
+	if (found) {
+		struct mem_region * adder =
+			(struct mem_region *)malloc(sizeof(struct mem_region));
+		adder->pointer = tmp->pointer;
+		adder->size = size;
+		adder->next = used_regions;
+		adder->prev = NULL;
+		if (used_regions == NULL) 
+			used_regions = adder;
+		else {
+			used_regions->prev = adder;
+			used_regions = adder;
+		}
+		if (tmp->size == size) {
+			if (tmp == free_regions) {
+				free_regions = free_regions->next;
+				if (free_regions != NULL)
+					free_regions->prev = NULL;
+			} else {
+				if (tmp->prev != NULL) 
+					tmp->prev->next = tmp->next;
+				if (tmp->next != NULL) 
+					tmp->next->prev = tmp->prev;
+			}
+			free(tmp);
+		} else {
+			tmp->pointer += size;
+			tmp->size -= size;
+		}
+		return tmp->pointer;
+	} else {
+		return NULL;
+	}
 }
 
 void * first_fit_allocator(unsigned int size) {
@@ -194,21 +244,22 @@ void * first_fit_allocator(unsigned int size) {
 	do {
 		if (size <= current_region->size) {
 			found = 1;
-		}else{
+		} else {
 			current_region = current_region->next;
 		}
 	} while (!found && current_region != NULL);
 	
+	// Add to the head of the used region
 	if (found) {
-		struct mem_region* tmp =
-			(struct mem_region*)malloc(sizeof(struct mem_region));
+		struct mem_region * tmp =
+			(struct mem_region *)malloc(sizeof(struct mem_region));
 		tmp->pointer = current_region->pointer;
 		tmp->size = size;
 		tmp->next = used_regions;
 		tmp->prev = NULL;
 		if (used_regions == NULL) {
 			used_regions = tmp;
-		}else{
+		} else {
 			used_regions->prev = tmp;
 			used_regions = tmp;
 		}
@@ -218,23 +269,19 @@ void * first_fit_allocator(unsigned int size) {
 				if (free_regions != NULL) {
 					free_regions->prev = NULL;
 				}
-			}else{
-				if (current_region->prev != NULL) {
+			} else {
+				if (current_region->prev != NULL) 
 					current_region->prev->next = current_region->next;
-				}
-				if (current_region->next != NULL) {
+				if (current_region->next != NULL) 
 					current_region->next->prev = current_region->prev;
-				}
 			}
 			free(current_region);
-		}else{
+		} else {
 			current_region->pointer += size;
 			current_region->size -= size;
 		}
 		return tmp->pointer;
-	}else{
+	} else {
 		return NULL;
 	}
 }
-
-

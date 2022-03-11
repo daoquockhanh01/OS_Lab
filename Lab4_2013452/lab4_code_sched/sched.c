@@ -1,3 +1,4 @@
+////////////////////////////////// DONE //////////////////////////////////////
 
 #include "queue.h"
 #include <pthread.h>
@@ -28,7 +29,7 @@ void * cpu(void * arg) {
 			 * wait until the next time slice */
 			timestamp++;
 			usleep(TIME_UNIT);
-		}else{
+		} else {
 			/* Execute the process */
 			int start = timestamp; 	// Save timestamp
 			int id = proc->pid;	// and PID for tracking
@@ -40,7 +41,13 @@ void * cpu(void * arg) {
 
 			// TODO: Calculate exec_time from process's PCB
 			
-			// YOUR CODE HERE
+			if (proc->burst_time > timeslot) {
+				proc->burst_time -= timeslot;
+				exec_time = timeslot;
+			} else {
+				exec_time = proc->burst_time;
+				proc->burst_time = 0;
+			}
 			
 			/* Emulate the execution of the process by using
 			 * 'usleep()' function */
@@ -53,7 +60,11 @@ void * cpu(void * arg) {
 			// burst time is zero. If so, free its PCB. Otherwise,
 			// put its PCB back to the queue.
 			
-			// YOUR CODE HERE
+			if (proc->burst_time == 0) {
+				free(proc);
+			} else {
+				en_queue(&ready_queue, proc);
+			}
 			
 			/* Track runtime status */
 			printf("%2d-%2d: Execute %d\n", start, timestamp, id);
@@ -113,7 +124,4 @@ int main() {
 	pthread_join(loader_id, NULL);
 
 	pthread_exit(NULL);
-
 }
-
-

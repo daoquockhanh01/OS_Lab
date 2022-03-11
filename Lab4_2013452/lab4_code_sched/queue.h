@@ -1,5 +1,5 @@
-
 #ifndef QUEUE_H
+#include <stdio.h>
 #define QUEUE_H
 
 #include "structs.h"
